@@ -58,7 +58,7 @@ void augment( int v, int exposed ) {
   mate_V[v] = exposed;
   mate_U[exposed] = v;
 
-  if ( parent[v] > 0 )
+  if ( parent[v] != -1 )
     augment( parent[v], aux );
 
 }
