@@ -26,15 +26,6 @@
 // 7 9 4 2 2
 // 8 4 7 4 8
 //
-// While some of the vector names here match those given in the
-// pseudo-code in [1], there are major differences in this implementation:
-//
-// 1) There is no auxiliary initial graph A;
-// 2) Function search() in this code corresponds to
-//    procedure "modify" and the "searches" (dashed-boxes) in [1];
-// 3) Labelling of vertices in V and U in this code is made explicit
-//    by the vectors label_V and label_U;
-//
 ////////////////////////////////////////////////////////////////////////
 
 #include <iostream>
@@ -50,9 +41,6 @@ vector<int> mate_V,mate_U,nhbor,parent;
 vector<ll> alpha,beta,slack,min_col;
 vector<bool> label_V,label_U;
 
-#define for_unlabelled_u  for ( int u = 0; u < N; u++ ) if ( not label_U[u] )
-#define for_unmatched_v   for ( int v = 0; v < N; v++ ) if ( mate_V[v] == -1 )
-
 void augment( int v, int exposed ) {
 
   int aux = mate_V[v];
@@ -66,14 +54,16 @@ void augment( int v, int exposed ) {
 }
 
 void update_slack( int v ) {
-  
-  for_unlabelled_u {
-    ll bound = c[v][u]-alpha[v]-beta[u];
-    if ( 0LL <= bound and bound < slack[u] ) {
-      slack[u] = bound;
-      nhbor[u] = v;
+
+  // for unlabelled u in U
+  for ( int u = 0; u < N; u++ )
+    if ( not label_U[u] ) {
+      ll bound = c[v][u]-alpha[v]-beta[u];
+      if ( 0LL <= bound and bound < slack[u] ) {
+	slack[u] = bound;
+	nhbor[u] = v;
+      }
     }
-  }
   
 }
 
@@ -92,18 +82,23 @@ ll update_alpha_beta() {
   
   ll theta = numeric_limits<ll>::max();
 
-  for_unlabelled_u {
-    theta = min( theta, slack[u] );
-  }
+  // for unlabelled u in U
+  for ( int u = 0; u < N; u++ )
+    if ( not label_U[u] )
+      theta = min( theta, slack[u] );
   
-  // integrality is ensured
-  theta /= 2LL;
-  
-  for ( int k = 0; k < N; k++ ) {
-    if ( label_V[k] ) alpha[k] += theta;
-    else alpha[k] -= theta;
-    if ( label_U[k] ) beta[k] -= theta;
-    else beta[k] += theta;
+  // skip if theta == 0 (no update needed)
+  if ( theta > 0LL ) {
+    
+    // integrality is ensured
+    theta /= 2LL;
+    
+    for ( int k = 0; k < N; k++ ) {
+      if ( label_V[k] ) alpha[k] += theta;
+      else alpha[k] -= theta;
+      if ( label_U[k] ) beta[k] -= theta;
+      else beta[k] += theta;
+    }
   }
   
   return theta;
@@ -121,22 +116,24 @@ void initialize_search() {
 
 void search() {
 
-  for ( int i = 0; i < N; i++ ) {
+  while ( true ) {
     ll theta = update_alpha_beta();
-       
+    
     vector<int> admissibles = vector<int>();
-
-    for_unlabelled_u {
-      slack[u] -= 2LL*theta;
-      if ( slack[u] == 0LL ) {
-	if ( mate_U[u] == -1 ) {
-	  augment( nhbor[u], u );
-	  return;
-	} else { 
-	  admissibles.push_back( u );
+    
+    // for unlabelled u in U
+    for ( int u = 0; u < N; u++ )
+      if ( not label_U[u] ) {
+	slack[u] -= 2LL*theta;
+	if ( slack[u] == 0LL ) {
+	  if ( mate_U[u] == -1 ) {
+	    augment( nhbor[u], u );
+	    return;
+	  } else { 
+	    admissibles.push_back( u );
+	  }
 	}
       }
-    }
     
     for ( int u: admissibles ) {
       label_U[u] = true;
@@ -158,6 +155,7 @@ void read_input() {
   for ( int v = 0; v < N; v++ )
     for ( int u = 0; u < N; u++ ) {
       cin >> c[v][u];
+      
       // multiply by 2LL to ensure integrality
       c[v][u] *= 2LL;
       min_col[u] = min( min_col[u], c[v][u] );
@@ -175,11 +173,13 @@ int main() {
 
   for ( int i = 0; i < N; i++ ) {
     initialize_search();
-    
-    for_unmatched_v {
-      label_V[v] = true;
-      update_slack( v );
-    }
+
+    // start with unmatched v in V
+    for ( int v = 0; v < N; v++ )
+      if ( mate_V[v] == -1 ) {
+	label_V[v] = true;
+	update_slack( v );
+      }
     
     search();
   }
