@@ -15,7 +15,7 @@
 //
 // The code reads the instance from the standard input and
 // writes the value of the optimal assignment to the standard output.
-// The assignment itself is given by the vectors mate_V and mate_U.
+// To output the assignment itself use "-m" or "--match"
 //
 // The input should describe the cost matrix like this example from [1]:
 //
@@ -29,6 +29,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 #include <iostream>
+#include <string>
 #include <limits>
 #include <vector>
 
@@ -163,17 +164,13 @@ void read_input() {
   
 }
 
-int main() {
-
-  ios::sync_with_stdio(false);
-  cin.tie(nullptr);
-
-  read_input();
+void hungarian_algorithm() {
+  
   initialize_alpha_beta();
-
+  
   for ( int i = 0; i < N; i++ ) {
     initialize_search();
-
+    
     // start with unmatched v in V
     for ( int v = 0; v < N; v++ )
       if ( mate_V[v] == -1 ) {
@@ -183,12 +180,34 @@ int main() {
     
     search();
   }
-    
-  ll min_cost = 0LL;
-  for ( int i = 0; i < N; i++ )
-    min_cost += alpha[i]+beta[i];
+  
+}
 
-  cout << min_cost/2LL << endl;
+int main(int argc, char* argv[]) {
+  
+  ios::sync_with_stdio(false);
+  cin.tie(nullptr);
+
+  bool match = false;
+  if ( argc > 1 ) {
+    string opt = argv[1];
+    if ( opt == "-m" or opt == "--match" )
+      match = true;
+  }
+
+  read_input();
+
+  hungarian_algorithm();
+
+  if ( match ) { // output assignment itself
+    for ( int v = 0; v < N; v++ )
+      cout << mate_V[v] << endl;
+  } else {       // output optimal assignment cost
+    ll opt_cost = 0LL;
+    for ( int i = 0; i < N; i++ )
+      opt_cost += alpha[i]+beta[i];
+    cout << opt_cost/2LL << endl;
+  }
   
   return 0;
   
