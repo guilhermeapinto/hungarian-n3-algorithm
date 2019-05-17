@@ -68,17 +68,6 @@ void update_slack( int v ) {
   
 }
 
-void initialize_alpha_beta() {
-
-  mate_V = vector<int>(N,-1);
-  mate_U = vector<int>(N,-1);
-  alpha = vector<ll>(N,0LL);
-  beta = vector<ll>(N);
-  for ( int u = 0; u < N; u++ )
-    beta[u] = min_col[u];
-  
-}
-
 ll update_alpha_beta() {
   
   ll theta = numeric_limits<ll>::max();
@@ -105,17 +94,7 @@ ll update_alpha_beta() {
   return theta;
 }
 
-void initialize_search() {
-
-  nhbor = vector<int>(N,-1);
-  parent = vector<int>(N,-1);
-  slack = vector<ll>(N,numeric_limits<ll>::max());
-  label_V = vector<bool>(N,false);
-  label_U = vector<bool>(N,false);
-  
-}
-
-void search() {
+int search_alternating_path() {
 
   while ( true ) {
     ll theta = update_alpha_beta();
@@ -127,12 +106,8 @@ void search() {
       if ( not label_U[u] ) {
 	slack[u] -= 2LL*theta;
 	if ( slack[u] == 0LL ) {
-	  if ( mate_U[u] == -1 ) {
-	    augment( nhbor[u], u );
-	    return;
-	  } else { 
-	    admissibles.push_back( u );
-	  }
+	  if ( mate_U[u] == -1 ) return u;
+	  else admissibles.push_back( u );
 	}
       }
     
@@ -142,6 +117,48 @@ void search() {
       parent[mate_U[u]] = nhbor[u];
       update_slack( mate_U[u] );
     }    
+  }
+  
+}
+
+void initialize_search() {
+
+  nhbor = vector<int>(N,-1);
+  parent = vector<int>(N,-1);
+  slack = vector<ll>(N,numeric_limits<ll>::max());
+  label_V = vector<bool>(N,false);
+  label_U = vector<bool>(N,false);
+  
+}
+
+void initialize_alpha_beta() {
+
+  mate_V = vector<int>(N,-1);
+  mate_U = vector<int>(N,-1);
+  alpha = vector<ll>(N,0LL);
+  beta = vector<ll>(N);
+  for ( int u = 0; u < N; u++ )
+    beta[u] = min_col[u];
+  
+}
+
+void hungarian_algorithm() {
+  
+  initialize_alpha_beta();
+  
+  for ( int i = 0; i < N; i++ ) {
+    initialize_search();
+    
+    // start with unmatched v in V
+    for ( int v = 0; v < N; v++ )
+      if ( mate_V[v] == -1 ) {
+	label_V[v] = true;
+	update_slack( v );
+      }
+    
+    int u = search_alternating_path();
+    
+    augment( nhbor[u], u );
   }
   
 }
@@ -161,25 +178,6 @@ void read_input() {
       c[v][u] *= 2LL;
       min_col[u] = min( min_col[u], c[v][u] );
     }
-  
-}
-
-void hungarian_algorithm() {
-  
-  initialize_alpha_beta();
-  
-  for ( int i = 0; i < N; i++ ) {
-    initialize_search();
-    
-    // start with unmatched v in V
-    for ( int v = 0; v < N; v++ )
-      if ( mate_V[v] == -1 ) {
-	label_V[v] = true;
-	update_slack( v );
-      }
-    
-    search();
-  }
   
 }
 
