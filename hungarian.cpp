@@ -45,6 +45,7 @@ vector<bool> label_V,label_U;
 bool unlabelled_U( int u ) { return not label_U[u]; }
 bool unmatched_V( int v ) { return mate_V[v] == -1; }
 bool unmatched_U( int u ) { return mate_U[u] == -1; }
+bool admissible_U( int u ) { return slack[u] == 0LL; }
 
 void augment( int v, int exposed_u ) {
 
@@ -109,8 +110,9 @@ int search_augmenting_alternating_path() {
     for ( int u = 0; u < N; u++ )
       if ( unlabelled_U( u ) ) {
 	slack[u] -= 2LL*theta;
-	if ( slack[u] == 0LL ) { // unlabelled and admissible
-	  if ( unmatched_U( u ) ) return u; // unmatched => path found
+	if ( admissible_U( u ) ) {
+	  // unlabelled, admissible and unmatched => path found
+	  if ( unmatched_U( u ) ) return u;
 	  else admissibles.push_back( u );
 	}
       }
