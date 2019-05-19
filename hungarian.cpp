@@ -42,12 +42,16 @@ vector<int> mate_V,mate_U,nhbor,parent;
 vector<ll> alpha,beta,slack,min_col;
 vector<bool> label_V,label_U;
 
-void augment( int v, int exposed ) {
+bool unlabelled_U( int u ) { return not label_U[u]; }
+bool unmatched_V( int v ) { return mate_V[v] == -1; }
+bool unmatched_U( int u ) { return mate_U[u] == -1; }
+
+void augment( int v, int exposed_u ) {
 
   int aux = mate_V[v];
 
-  mate_V[v] = exposed;
-  mate_U[exposed] = v;
+  mate_V[v] = exposed_u;
+  mate_U[exposed_u] = v;
 
   if ( parent[v] != -1 )
     augment( parent[v], aux );
@@ -58,7 +62,7 @@ void update_slack( int v ) {
 
   // for unlabelled u in U
   for ( int u = 0; u < N; u++ )
-    if ( not label_U[u] ) {
+    if ( unlabelled_U( u ) ) {
       ll bound = c[v][u]-alpha[v]-beta[u];
       if ( 0LL <= bound and bound < slack[u] ) {
 	slack[u] = bound;
@@ -74,7 +78,7 @@ ll update_alpha_beta() {
 
   // for unlabelled u in U
   for ( int u = 0; u < N; u++ )
-    if ( not label_U[u] )
+    if ( unlabelled_U( u ) )
       theta = min( theta, slack[u] );
   
   // skip if theta == 0 (no update needed)
@@ -83,18 +87,18 @@ ll update_alpha_beta() {
     // integrality is ensured
     theta /= 2LL;
     
-    for ( int k = 0; k < N; k++ ) {
-      if ( label_V[k] ) alpha[k] += theta;
-      else alpha[k] -= theta;
-      if ( label_U[k] ) beta[k] -= theta;
-      else beta[k] += theta;
+    for ( int i = 0; i < N; i++ ) {
+      if ( label_V[i] ) alpha[i] += theta;
+      else alpha[i] -= theta;
+      if ( label_U[i] ) beta[i] -= theta;
+      else beta[i] += theta;
     }
   }
   
   return theta;
 }
 
-int search_alternating_path() {
+int search_augmenting_alternating_path() {
 
   while ( true ) {
     ll theta = update_alpha_beta();
@@ -103,10 +107,10 @@ int search_alternating_path() {
     
     // for unlabelled u in U
     for ( int u = 0; u < N; u++ )
-      if ( not label_U[u] ) {
+      if ( unlabelled_U( u ) ) {
 	slack[u] -= 2LL*theta;
-	if ( slack[u] == 0LL ) {
-	  if ( mate_U[u] == -1 ) return u;
+	if ( slack[u] == 0LL ) { // unlabelled and admissible
+	  if ( unmatched_U( u ) ) return u; // unmatched => path found
 	  else admissibles.push_back( u );
 	}
       }
@@ -151,12 +155,12 @@ void hungarian_algorithm() {
     
     // start with unmatched v in V
     for ( int v = 0; v < N; v++ )
-      if ( mate_V[v] == -1 ) {
+      if ( unmatched_V( v ) ) {
 	label_V[v] = true;
 	update_slack( v );
       }
     
-    int u = search_alternating_path();
+    int u = search_augmenting_alternating_path();
     
     augment( nhbor[u], u );
   }
